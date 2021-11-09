@@ -5,12 +5,15 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Parcelable
 import android.util.Log
 import com.github.dhaval2404.imagepicker.ImagePicker
 import com.github.dhaval2404.imagepicker.ImagePickerActivity
 import com.github.dhaval2404.imagepicker.R
 import com.github.dhaval2404.imagepicker.util.FileUtil
 import com.yalantis.ucrop.UCrop
+import com.yalantis.ucrop.model.AspectRatio
+import kotlinx.parcelize.Parcelize
 import java.io.File
 import java.io.IOException
 
@@ -41,6 +44,14 @@ class CropProvider(activity: ImagePickerActivity) : BaseProvider(activity) {
     private var mCropImageFile: File? = null
     private val mFileDir: File
 
+    /**
+     *  Set custom cropping options
+     *  string  -> title of aspect ration, eg : 1:1
+     *  float   -> aspect ratio x
+     *  float   -> aspect ratio y
+     */
+    private val croppingOptions : ArrayList<CroppingOptions> = ArrayList()
+
     init {
         val bundle = activity.intent.extras ?: Bundle()
 
@@ -52,6 +63,12 @@ class CropProvider(activity: ImagePickerActivity) : BaseProvider(activity) {
         mCrop = bundle.getBoolean(ImagePicker.EXTRA_CROP, false)
         mCropAspectX = bundle.getFloat(ImagePicker.EXTRA_CROP_X, 0f)
         mCropAspectY = bundle.getFloat(ImagePicker.EXTRA_CROP_Y, 0f)
+
+        bundle.getParcelableArrayList<CroppingOptions>(ImagePicker.EXTRA_CROPPING_OPTIONS)?.let {
+            if (!it.isNullOrEmpty()){
+                croppingOptions.addAll(it)
+            }
+        }
 
         // Get File Directory
         val fileDir = bundle.getString(ImagePicker.EXTRA_SAVE_DIRECTORY)
@@ -110,13 +127,29 @@ class CropProvider(activity: ImagePickerActivity) : BaseProvider(activity) {
             return
         }
 
+        val noCustomCroppingOptions = croppingOptions.isNullOrEmpty()
+
         val options = UCrop.Options()
         options.setCompressionFormat(FileUtil.getCompressFormat(extension))
+
+
+        if (!noCustomCroppingOptions) {
+            options.setAspectRatioOptions(
+                0,
+                *croppingOptions.map {
+                    AspectRatio(
+                        it.title,
+                        it.ratioX,
+                        it.ratioY
+                    )
+                }.toTypedArray()
+            )
+        }
 
         val uCrop = UCrop.of(uri, Uri.fromFile(mCropImageFile))
             .withOptions(options)
 
-        if (mCropAspectX > 0 && mCropAspectY > 0) {
+        if (mCropAspectX > 0 && mCropAspectY > 0 && noCustomCroppingOptions) {
             uCrop.withAspectRatio(mCropAspectX, mCropAspectY)
         }
 
@@ -187,3 +220,16 @@ class CropProvider(activity: ImagePickerActivity) : BaseProvider(activity) {
         mCropImageFile = null
     }
 }
+
+/**
+ *  string  -> title of aspect ration, eg : 1:1
+ *  float   -> aspect ratio x
+ *  float   -> aspect ratio y
+ */
+
+@Parcelize
+class CroppingOptions(
+    val title : String,
+    val ratioX : Float,
+    val ratioY : Float
+) : Parcelable

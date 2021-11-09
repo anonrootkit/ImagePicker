@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 import com.github.dhaval2404.imagepicker.constant.ImageProvider
 import com.github.dhaval2404.imagepicker.listener.DismissListener
 import com.github.dhaval2404.imagepicker.listener.ResultListener
+import com.github.dhaval2404.imagepicker.provider.CroppingOptions
 import com.github.dhaval2404.imagepicker.util.DialogHelper
 import java.io.File
 
@@ -28,6 +29,7 @@ open class ImagePicker {
         internal const val EXTRA_CAMERA_DEVICE = "extra.camera_device"
 
         internal const val EXTRA_IMAGE_MAX_SIZE = "extra.image_max_size"
+        internal const val EXTRA_CROPPING_OPTIONS = "extra.crop.options"
         internal const val EXTRA_CROP = "extra.crop"
         internal const val EXTRA_CROP_X = "extra.crop_x"
         internal const val EXTRA_CROP_Y = "extra.crop_y"
@@ -86,9 +88,18 @@ open class ImagePicker {
         /*
          * Crop Parameters
          */
+
         private var cropX: Float = 0f
         private var cropY: Float = 0f
         private var crop: Boolean = false
+
+        /**
+         *  Set custom cropping options
+         *  string  -> title of aspect ration, eg : 1:1
+         *  float   -> aspect ratio x
+         *  float   -> aspect ratio y
+         */
+        private val croppingOptions: ArrayList<CroppingOptions> = ArrayList()
 
         /*
          * Resize Parameters
@@ -171,6 +182,20 @@ open class ImagePicker {
         fun crop(x: Float, y: Float): Builder {
             cropX = x
             cropY = y
+            return crop()
+        }
+
+
+        /**
+         *  Set custom cropping options
+         *  list of triple containing :
+         *  string  -> title of aspect ration, eg : 1:1
+         *  float   -> aspect ratio x
+         *  float   -> aspect ratio y
+         */
+
+        fun croppingOptions(options: List<CroppingOptions>): Builder {
+            croppingOptions.addAll(options)
             return crop()
         }
 
@@ -349,6 +374,9 @@ open class ImagePicker {
                 putLong(EXTRA_IMAGE_MAX_SIZE, maxSize)
 
                 putString(EXTRA_SAVE_DIRECTORY, saveDir)
+                if (!croppingOptions.isNullOrEmpty()) {
+                    putParcelableArrayList(EXTRA_CROPPING_OPTIONS, croppingOptions)
+                }
             }
         }
 
